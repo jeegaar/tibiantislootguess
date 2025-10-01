@@ -3,189 +3,331 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Tibiantis Loot Guess</title>
+<title>Tibiantis — Loot Guess</title>
 <style>
-  :root {
-    --bg:#0c0f12; --panel:#1a1f24; --text:#e6edf3; --muted:#9aa7b1;
-    --green:#2e7d32; --red:#c62828; --accent:#ffcc00; --border:#26323a;
+  :root{
+    --bg:#0c0f12;--panel:#1a1f24;--text:#e6edf3;--muted:#9aa7b1;
+    --green:#2e7d32;--red:#c62828;--accent:#ffcc00;--border:#26323a;
   }
-  * { box-sizing:border-box }
-  body {
-    margin:0; font-family:system-ui,Arial,sans-serif;
-    background:linear-gradient(180deg,#0c0f12,#12161a);
-    color:var(--text); min-height:100vh;
-    display:flex; align-items:center; justify-content:center;
-    padding:24px;
+  *{box-sizing:border-box}
+  body{
+    margin:0;font-family:system-ui,Arial,sans-serif;background:linear-gradient(180deg,#0c0f12,#12161a);
+    color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
   }
-  .app {
-    width:100%; max-width:900px; background:var(--panel);
-    border:1px solid var(--border); border-radius:12px; padding:18px;
-    text-align:center;
+  .app{width:100%;max-width:900px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  h1{margin:0;color:var(--accent);display:flex;gap:10px;align-items:center;font-size:1.2rem;}
+  .help{color:var(--muted);font-size:0.95rem;margin-bottom:10px;text-align:center}
+  .hidden{display:none}
+
+  /* Controls */
+  .row{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-top:10px}
+  input[type=text]{padding:10px;border-radius:8px;border:1px solid var(--border);background:#0f1419;color:var(--text)}
+  button{padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:#0f1419;color:var(--text);cursor:pointer}
+
+  /* Loot strip */
+  #lootArea{
+    display:flex;justify-content:center;align-items:center;gap:12px;
+    margin:18px 0 6px 0;flex-wrap:wrap;
   }
-  h1 { color:var(--accent); margin:0 0 10px; }
-  .hidden { display:none }
-  button {
-    padding:10px 14px; border-radius:8px; border:1px solid var(--border);
-    background:#0f1419; color:var(--text); cursor:pointer; margin-top:10px;
+  #lootArea figure{
+    margin:0;display:flex;flex-direction:column;align-items:center;gap:6px
   }
-  input[type=text] {
-    padding:10px; border-radius:8px; border:1px solid var(--border);
-    background:#0f1419; color:var(--text); width:100%;
+  #lootArea img{
+    width:48px;height:48px;object-fit:contain;
+    border:1px solid var(--border);border-radius:8px;background:#0f1419;padding:6px;
   }
-  .row {
-    display:grid; grid-template-columns:1fr auto; gap:8px; margin-top:10px;
+  #lootArea figcaption{
+    font-size:0.75rem;color:var(--muted);
   }
-  #lootArea {
-    display:flex; justify-content:center; gap:12px;
-    margin:20px 0; flex-wrap:wrap;
-  }
-  #lootArea img {
-    width:48px; height:48px; object-fit:contain;
-    border:1px solid var(--border); border-radius:8px;
-    background:#0f1419; padding:6px;
-  }
-  table { width:100%; border-collapse:collapse; margin-top:10px }
-  th, td { padding:8px; border-bottom:1px solid var(--border); text-align:left }
-  .badge { display:inline-block; padding:4px 8px; border-radius:999px; font-size:0.85rem; color:#fff; }
-  .ok { background:var(--green) } .no { background:var(--red) }
-  #message { margin-top:10px }
-  .modal-backdrop {
-    position:fixed; inset:0; background:rgba(0,0,0,0.6);
-    display:flex; align-items:center; justify-content:center; z-index:9999;
-  }
-  .modal {
-    background:var(--panel); padding:20px; border-radius:12px;
-    border:1px solid var(--border); max-width:420px;
-    box-shadow:0 10px 30px rgba(0,0,0,0.5); text-align:center;
-  }
-  .modal h2 { margin:0 0 8px; color:var(--accent) }
-  .modal button { padding:8px 12px; border-radius:8px }
+
+  /* Table */
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{padding:8px;border-bottom:1px solid var(--border);text-align:left}
+  .badge{display:inline-block;padding:4px 8px;border-radius:999px;color:#fff;font-size:0.85rem}
+  .ok{background:var(--green)}.no{background:var(--red)}
+
+  /* Modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999}
+  .modal{background:var(--panel);padding:20px;border-radius:12px;border:1px solid var(--border);max-width:420px;box-shadow:0 10px 30px rgba(0,0,0,0.5);text-align:center}
+  .modal h2{margin:0 0 8px;color:var(--accent)}.modal p{margin:0 0 12px}
+  .modal button{padding:8px 12px;border-radius:8px}
+
+  #message{margin-top:10px}
+  #welcome{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
 </style>
 </head>
 <body>
-<div class="app" role="application" aria-label="Tibiantis Loot Guess">
-  <h1>🐉 Guess the Tibiantis Monster</h1>
-  <div id="welcome">
-    <p>Welcome to Guess the Tibiantis monster based on its loot!</p>
-    <button id="startBtn">Start the game!</button>
-  </div>
+  <div class="app" role="application" aria-label="Tibiantis Loot Guess">
+    <header>
+      <h1>🐉 Tibiantis — Loot Guess</h1>
+      <div style="color:var(--muted);font-size:0.95rem" id="dayInfo"></div>
+    </header>
 
-  <div id="gameArea" class="hidden">
-    <div style="color:var(--muted);font-size:0.9rem" id="dayInfo"></div>
-    <div id="lootArea"></div>
-
-    <div class="row">
-      <input id="guessInput" placeholder="Type a creature name…" autocomplete="off" />
-      <button id="guessBtn">Guess</button>
+    <div id="welcome">
+      <div class="help">Welcome to Guess the Tibiantis monster based on its loot!</div>
+      <button id="startBtn">Start the game!</button>
     </div>
 
-    <table aria-label="Guesses">
-      <thead><tr><th>Name</th><th>Status</th></tr></thead>
-      <tbody id="guessesBody"></tbody>
-    </table>
+    <div id="gameArea" class="hidden">
+      <div class="help">A random item from today’s monster will appear. If your guess is wrong, the next item appears (to the right). Case doesn’t matter.</div>
 
-    <div id="message" role="status" aria-live="polite"></div>
+      <div id="lootArea" aria-label="Revealed loot icons"></div>
+
+      <div class="row">
+        <input id="guessInput" placeholder="Type a creature name and press Enter…" autocomplete="off" />
+        <button id="guessBtn">Guess</button>
+        <button id="resetBtn" title="Clear today’s progress">Reset</button>
+      </div>
+
+      <table aria-label="Guesses">
+        <thead><tr><th>Name</th><th>Status</th></tr></thead>
+        <tbody id="guessesBody"></tbody>
+      </table>
+
+      <div id="message" role="status" aria-live="polite"></div>
+    </div>
   </div>
-</div>
 
 <script>
+/* ===== Config: files at repo root (Netlify) ===== */
 const ITEMS_URL = "/items.json";
 const MONSTER_LOOT_URL = "/monster_loot.json";
 
+/* ===== Utilities ===== */
+const norm = v => (v ?? '').toString().trim().toLowerCase();
+
 function getWarsawDateKey(){
-  const fmt = new Intl.DateTimeFormat('en-CA', {
-    timeZone:'Europe/Warsaw', year:'numeric', month:'2-digit', day:'2-digit'
-  });
+  const fmt = new Intl.DateTimeFormat('en-CA', {timeZone:'Europe/Warsaw', year:'numeric', month:'2-digit', day:'2-digit'});
   const parts = fmt.formatToParts(new Date());
   const y = parts.find(p=>p.type==='year').value;
   const m = parts.find(p=>p.type==='month').value;
   const d = parts.find(p=>p.type==='day').value;
   return `${y}-${m}-${d}`;
 }
-function hashStr(s){
-  let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); }
-  return h>>>0;
-}
-
-let ITEMS = {};
-let MONSTER_LOOT = {};
-let TARGET_MONSTER = null;
-let LOOT_LIST = [];
-let revealed = 0;
-const STORAGE_KEY = 'tibiantis_loot_' + getWarsawDateKey();
-
-async function initData(){
-  ITEMS = await fetch(ITEMS_URL).then(r=>r.json());
-  MONSTER_LOOT = await fetch(MONSTER_LOOT_URL).then(r=>r.json());
-
-  const names = Object.keys(MONSTER_LOOT);
-  const idx = hashStr(getWarsawDateKey()) % names.length;
-  TARGET_MONSTER = names[idx];
-  const lootNames = MONSTER_LOOT[TARGET_MONSTER] || [];
-  LOOT_LIST = lootNames.map(n => ({
-  name: n,
-  icon: ITEMS[n] || "icons/unknown.png"
-}));
-
-  shuffle(LOOT_LIST);
-}
+function hashStr(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h,16777619); } return h>>>0; }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
 
-function revealNextLoot(){
-  if(revealed < LOOT_LIST.length){
-    const item = LOOT_LIST[revealed++];
-    const img = document.createElement("img");
-    img.src = item.icon;
-    img.title = item.name;
-    document.getElementById("lootArea").appendChild(img);
-  }
+/* ===== State ===== */
+let ITEMS = {};                // { itemName(lower): iconPath }
+let MONSTER_LOOT = {};         // { monsterName(lower): [ itemName(lower), ... ] }
+let MONSTER_NAMES = [];        // sorted list of monster names (original case not provided, we keep lower)
+let TARGET = null;             // today's monster (lowercase)
+let LOOT_LIST = [];            // [{name, icon}]
+let revealed = 0;              // how many loot icons are shown
+let solved = false;
+
+const DATE_KEY = getWarsawDateKey();
+const STORAGE_KEY = 'tibia_loot_' + DATE_KEY;
+
+/* ===== DOM refs ===== */
+const dayInfo = document.getElementById('dayInfo');
+const welcome = document.getElementById('welcome');
+const gameArea = document.getElementById('gameArea');
+const lootArea = document.getElementById('lootArea');
+const guessInput = document.getElementById('guessInput');
+const guessBtn = document.getElementById('guessBtn');
+const resetBtn = document.getElementById('resetBtn');
+const guessesBody = document.getElementById('guessesBody');
+const messageBox = document.getElementById('message');
+
+/* ===== Persistence ===== */
+function saveState(){
+  const rows = Array.from(guessesBody.querySelectorAll('tr')).map(tr => {
+    const name = tr.children[0]?.textContent ?? '';
+    const ok = tr.querySelector('.badge')?.classList.contains('ok') ?? false;
+    return { name, ok };
+  });
+  const data = { revealed, solved, rows };
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
+}
+function clearToday(){
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
 }
 
-function makeGuess(){
-  clearMessage();
-  const name = document.getElementById('guessInput').value.trim();
-  if(!name) return;
+/* ===== UI helpers ===== */
+function showMessage(text, type){
+  messageBox.className = type || '';
+  messageBox.textContent = text || '';
+}
+function clearMessage(){ showMessage('', ''); }
+
+function addGuessRow(name, correct){
   const tr = document.createElement('tr');
   const tdName = document.createElement('td'); tdName.textContent = name;
   const tdStatus = document.createElement('td');
   const badge = document.createElement('span');
-  if(name.toLowerCase() === TARGET_MONSTER.toLowerCase()){
-    badge.className="badge ok"; badge.textContent="Correct";
-    showMessage("🎉 You guessed it! The creature is "+TARGET_MONSTER, "winner");
-    showModal();
+  badge.className = 'badge ' + (correct ? 'ok' : 'no');
+  badge.textContent = correct ? 'Correct' : 'Wrong';
+  tdStatus.appendChild(badge);
+  tr.appendChild(tdName); tr.appendChild(tdStatus);
+  guessesBody.prepend(tr);
+}
+
+function showWinModal(guessesCount){
+  const backdrop = document.createElement('div'); backdrop.className='modal-backdrop';
+  const modal = document.createElement('div'); modal.className='modal';
+  const h = document.createElement('h2'); h.textContent = 'You Guessed Right!';
+  const p = document.createElement('p'); p.textContent = `Solved in ${guessesCount} ${guessesCount===1?'guess':'guesses'}!`;
+  const btn = document.createElement('button'); btn.textContent='Close';
+  btn.addEventListener('click', ()=>document.body.removeChild(backdrop));
+  modal.appendChild(h); modal.appendChild(p); modal.appendChild(btn);
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+}
+
+function revealNextLoot(){
+  if(revealed >= LOOT_LIST.length){
+    showMessage('No more loot hints. Keep trying!', 'info');
+    return;
+  }
+  const item = LOOT_LIST[revealed++];
+  const fig = document.createElement('figure');
+  const img = document.createElement('img');
+  img.src = item.icon || 'icons/unknown.png';
+  img.alt = item.name;
+  img.title = item.name;
+  // Fallback if image 404s
+  img.onerror = () => { img.onerror=null; img.src='icons/unknown.png'; };
+  const cap = document.createElement('figcaption');
+  cap.textContent = ''; // keep icons only; hover shows title
+  fig.appendChild(img); fig.appendChild(cap);
+  lootArea.appendChild(fig);
+}
+
+/* ===== Data loading ===== */
+async function fetchJSON(url){
+  const r = await fetch(url, { cache: 'no-store' });
+  if(!r.ok) throw new Error(`Failed to load ${url}: ${r.status}`);
+  return r.json();
+}
+
+async function initData(){
+  // Load items (name -> icon string)
+  const itemsObj = await fetchJSON(ITEMS_URL);
+  ITEMS = {};
+  // Normalize keys to lowercase for safe lookup
+  Object.keys(itemsObj).forEach(k => { ITEMS[norm(k)] = itemsObj[k]; });
+
+  // Load monster -> loot names
+  const ml = await fetchJSON(MONSTER_LOOT_URL);
+  MONSTER_LOOT = {};
+  Object.keys(ml).forEach(mon => {
+    const loots = Array.isArray(ml[mon]) ? ml[mon] : [];
+    MONSTER_LOOT[norm(mon)] = loots.map(n => norm(n));
+  });
+
+  // Stable, predictable monster list
+  MONSTER_NAMES = Object.keys(MONSTER_LOOT).sort();
+
+  // Daily pick
+  const idx = MONSTER_NAMES.length ? (hashStr(DATE_KEY) % MONSTER_NAMES.length) : 0;
+  TARGET = MONSTER_NAMES[idx] || null;
+
+  // Build loot list for TARGET (map names -> {name, icon})
+  const lootNames = (TARGET && MONSTER_LOOT[TARGET]) ? MONSTER_LOOT[TARGET] : [];
+  LOOT_LIST = lootNames.map(name => ({
+    name,
+    icon: ITEMS[name] || 'icons/unknown.png'
+  }));
+  // Shuffle for reveal order
+  shuffle(LOOT_LIST);
+}
+
+/* ===== Game flow ===== */
+async function startGame(){
+  clearMessage();
+  dayInfo.textContent = 'Day: ' + DATE_KEY + ' (Europe/Warsaw)';
+
+  try{
+    await initData();
+  }catch(err){
+    showMessage('Error loading data. Ensure items.json & monster_loot.json are at repo root.', 'error');
+    console.error(err);
+    return;
+  }
+
+  // Show game area
+  welcome.classList.add('hidden');
+  gameArea.classList.remove('hidden');
+
+  // Restore state if present
+  const state = loadState();
+  if(state){
+    revealed = Math.min(state.revealed || 0, LOOT_LIST.length);
+    solved = !!state.solved;
+    // Reveal previously shown icons
+    for(let i=0;i<revealed;i++) revealNextLoot();
+    // Restore previous guess rows (oldest at bottom; we prepended when saving, so reverse to append then re-prepend)
+    (state.rows || []).slice().reverse().forEach(r => addGuessRow(r.name, r.ok));
+    if(solved){
+      showMessage('🎉 Already solved today. The creature is ' + prettyName(TARGET) + '.', 'winner');
+      disableInput();
+      return;
+    }
   } else {
-    badge.className="badge no"; badge.textContent="Wrong";
+    // First item
+    revealNextLoot();
+    saveState();
+  }
+}
+
+function disableInput(disabled=true){
+  guessInput.disabled = disabled;
+  guessBtn.disabled = disabled;
+}
+
+function prettyName(s){
+  // naive prettifier: capitalize words split by space / apostrophes / hyphens
+  return (s||'').split(/(\s|-|')/).map(part => /[a-z]/i.test(part) ? part.charAt(0).toUpperCase()+part.slice(1) : part).join('');
+}
+
+function makeGuess(){
+  if(!TARGET) return;
+  clearMessage();
+  const input = guessInput.value.trim();
+  if(!input) return;
+
+  const correct = norm(input) === TARGET;
+  addGuessRow(input, correct);
+
+  if(correct){
+    solved = true;
+    showMessage('🎉 You guessed it! Today\'s creature is ' + prettyName(TARGET) + '.', 'winner');
+    showWinModal(Array.from(guessesBody.querySelectorAll('tr')).length);
+    disableInput(true);
+  } else {
     revealNextLoot();
   }
-  tdStatus.appendChild(badge); tr.appendChild(tdName); tr.appendChild(tdStatus);
-  document.getElementById("guessesBody").prepend(tr);
-  document.getElementById("guessInput").value="";
+  guessInput.value = '';
+  saveState();
 }
 
-function showMessage(text,type){ const box=document.getElementById("message"); box.className=type; box.textContent=text; }
-function clearMessage(){ const box=document.getElementById("message"); box.className=""; box.textContent=""; }
+/* ===== Wire up ===== */
+document.getElementById('startBtn').addEventListener('click', startGame);
+guessBtn.addEventListener('click', makeGuess);
+guessInput.addEventListener('keydown', e => { if(e.key === 'Enter') makeGuess(); });
 
-function showModal(){
-  const backdrop=document.createElement("div"); backdrop.className="modal-backdrop";
-  const modal=document.createElement("div"); modal.className="modal";
-  const h=document.createElement("h2"); h.textContent="You Guessed Right!";
-  const p=document.createElement("p"); p.textContent="Well done!";
-  const btn=document.createElement("button"); btn.textContent="Close";
-  btn.addEventListener("click", ()=>document.body.removeChild(backdrop));
-  modal.appendChild(h); modal.appendChild(p); modal.appendChild(btn);
-  backdrop.appendChild(modal); document.body.appendChild(backdrop);
-}
-
-document.getElementById("startBtn").addEventListener("click", async ()=>{
-  await initData();
-  document.getElementById("welcome").classList.add("hidden");
-  document.getElementById("gameArea").classList.remove("hidden");
-  document.getElementById("dayInfo").textContent = "Day: "+getWarsawDateKey()+" (Europe/Warsaw)";
-  revealNextLoot(); // show first item
+resetBtn.addEventListener('click', ()=>{
+  clearToday();
+  // UI reset for today (don’t change the daily monster)
+  guessesBody.innerHTML = '';
+  lootArea.innerHTML = '';
+  revealed = 0;
+  solved = false;
+  disableInput(false);
+  clearMessage();
+  // re-reveal first item (or reload if not started)
+  revealNextLoot();
+  saveState();
 });
-
-document.getElementById("guessBtn").addEventListener("click", makeGuess);
-document.getElementById("guessInput").addEventListener("keydown", e=>{ if(e.key==="Enter") makeGuess(); });
 </script>
 </body>
 </html>
