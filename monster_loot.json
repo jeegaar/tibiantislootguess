@@ -168,8 +168,7 @@
     "short sword",
     "wolf tooth chain"
   ]
-}
-{
+  
   "deathslicer": [],
   "deer": [
     "ham",
@@ -323,8 +322,6 @@
     "soldier helmet",
     "white mushroom"
   ]
-}
-{
   "efreet": [
     "gold coin",
     "green gem",
@@ -474,8 +471,6 @@
     "small axe",
     "small stone"
   ]
-}
-{
   "gorlak": [
     "brown mushroom",
     "fishbone",
@@ -564,8 +559,7 @@
     "small ruby",
     "small stone"
   ]
-}
-{
+
   "larva": [
     "gold coin",
     "meat"
@@ -699,8 +693,6 @@
     "silver brooch",
     "strange talisman"
   ]
-}
-{
   "necromancer": [
     "boots of haste",
     "clerical mace",
@@ -927,8 +919,6 @@
     "torch",
     "viking helmet"
   ]
-}
-{
   "skunk": [
     "meat"
   ],
