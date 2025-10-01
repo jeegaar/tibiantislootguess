@@ -122,7 +122,11 @@ async function initData(){
   const idx = hashStr(getWarsawDateKey()) % names.length;
   TARGET_MONSTER = names[idx];
   const lootNames = MONSTER_LOOT[TARGET_MONSTER] || [];
-  LOOT_LIST = lootNames.map(n => ({name:n, icon:ITEMS[n]?.icon || "icons/unknown.png"}));
+  LOOT_LIST = lootNames.map(n => ({
+  name: n,
+  icon: ITEMS[n] || "icons/unknown.png"
+}));
+
   shuffle(LOOT_LIST);
 }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
