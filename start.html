@@ -32,14 +32,15 @@
   }
 
   .row{display:flex;gap:8px;margin:10px 0;align-items:flex-start}
-  input[type=text]{
-    flex:1;
-    min-width:300px;
-    padding:10px;
-    border-radius:8px;
-    border:1px solid var(--border);
-    background:#0f1419;
-    color:var(--text)
+  #guessInput {
+    width: 100%;
+    max-width: 500px;   /* wider input */
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #0f1419;
+    color: var(--text);
+    flex: 1;
   }
   button{
     padding:10px 14px;
@@ -80,13 +81,11 @@
     <div id="lootArea" aria-label="Revealed loot names"></div>
 
     <div class="row">
-      <div style="flex:1;display:flex;flex-direction:column">
-        <input id="guessInput" placeholder="Type monster name and press Enter…" autocomplete="off" />
-        <span id="errorMsg">This monster doesn't exist</span>
-      </div>
+      <input id="guessInput" placeholder="Type monster name and press Enter…" autocomplete="off" />
       <button id="guessBtn">Guess</button>
       <button id="resetBtn">Reset</button>
     </div>
+    <span id="errorMsg">This monster doesn't exist</span>
 
     <table aria-label="Guesses">
       <thead><tr><th>Guess</th><th>Status</th></tr></thead>
@@ -196,8 +195,10 @@ function onGuess(){
   guessInput.value='';saveState();
 }
 function resetGame(){
-  revealed=0;tries=0;solved=false;guessesBody.innerHTML='';lootArea.innerHTML='';
-  guessInput.disabled=false;document.getElementById('guessBtn').disabled=false;clearError();setMessage('');
+  revealed=0;tries=0;solved=false;
+  guessesBody.innerHTML='';lootArea.innerHTML='';
+  guessInput.disabled=false;document.getElementById('guessBtn').disabled=false;
+  clearError();setMessage('');
   if(LOOT.length===0)lootArea.textContent="This monster doesn't loot a thing!!!";else revealNext();
   saveState();
 }
