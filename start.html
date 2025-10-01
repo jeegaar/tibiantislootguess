@@ -5,181 +5,119 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Tibiantis — Loot Guess</title>
 <style>
-  :root{
-    --bg:#0c0f12;--panel:#1a1f24;--text:#e6edf3;--muted:#9aa7b1;
-    --green:#2e7d32;--red:#c62828;--accent:#ffcc00;--border:#26323a;
-  }
-  *{box-sizing:border-box}
   body{
-    margin:0;font-family:system-ui,Arial,sans-serif;
-    background:linear-gradient(180deg,#0c0f12,#12161a);
-    color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+    margin:0;font-family:Arial, sans-serif;
+    background:#0c0f12;color:#e6edf3;
+    display:flex;justify-content:center;align-items:center;min-height:100vh;
   }
-  .app{width:100%;max-width:900px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;}
-  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-  h1{margin:0;color:var(--accent);display:flex;gap:10px;align-items:center;font-size:1.2rem;}
-  .help{color:var(--muted);font-size:0.95rem;margin-bottom:10px;text-align:center}
+  .app{max-width:800px;width:100%;background:#1a1f24;
+    padding:20px;border:1px solid #26323a;border-radius:12px}
+  h1{color:#ffcc00;text-align:center;margin:0 0 10px}
   .hidden{display:none}
-
-  .row{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-top:10px}
-  input[type=text]{padding:10px;border-radius:8px;border:1px solid var(--border);background:#0f1419;color:var(--text)}
-  button{padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:#0f1419;color:var(--text);cursor:pointer}
-
-  #lootArea{display:flex;justify-content:center;align-items:center;gap:12px;margin:18px 0;flex-wrap:wrap}
+  #lootArea{display:flex;justify-content:center;gap:12px;margin:15px 0;flex-wrap:wrap}
   .loot-badge{
-    min-width:48px;min-height:48px;display:flex;align-items:center;justify-content:center;
-    padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#0f1419;
-    font-size:0.8rem;color:var(--text);text-align:center;white-space:nowrap;
+    padding:10px 14px;border-radius:8px;background:#0f1419;
+    border:1px solid #26323a;color:#e6edf3;font-size:0.9rem
   }
-
-  table{width:100%;border-collapse:collapse;margin-top:10px}
-  th,td{padding:8px;border-bottom:1px solid var(--border);text-align:left}
-  .badge{display:inline-block;padding:4px 8px;border-radius:999px;color:#fff;font-size:0.85rem}
-  .ok{background:var(--green)}.no{background:var(--red)}
-
-  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999}
-  .modal{background:var(--panel);padding:20px;border-radius:12px;border:1px solid var(--border);max-width:420px;text-align:center}
-  .modal h2{margin:0 0 8px;color:var(--accent)}.modal p{margin:0 0 12px}
-  .modal button{padding:8px 12px;border-radius:8px}
-
-  #message{margin-top:10px}
-  #welcome{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+  .row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:10px}
+  input{padding:10px;border-radius:8px;border:1px solid #26323a;background:#0f1419;color:#e6edf3}
+  button{padding:10px 12px;border-radius:8px;border:1px solid #26323a;background:#0f1419;color:#e6edf3;cursor:pointer}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:8px;border-bottom:1px solid #26323a;text-align:left}
+  .badge{padding:4px 8px;border-radius:999px;color:#fff;font-size:0.8rem}
+  .ok{background:#2e7d32}.no{background:#c62828}
 </style>
 </head>
 <body>
-  <div class="app" role="application" aria-label="Tibiantis Loot Guess">
-    <header>
-      <h1>🐉 Tibiantis — Loot Guess</h1>
-      <div style="color:var(--muted);font-size:0.95rem" id="dayInfo"></div>
-    </header>
+<div class="app">
+  <h1>🐉 Tibiantis Loot Guess</h1>
 
-    <div id="welcome">
-      <div class="help">Welcome to Guess the Tibiantis monster based on its loot!</div>
-      <button id="startBtn">Start the game!</button>
-    </div>
-
-    <div id="gameArea" class="hidden">
-      <div class="help">Guess today's creature. A random loot item is revealed first. Each wrong guess shows another item.</div>
-
-      <div id="lootArea"></div>
-
-      <div class="row">
-        <input id="guessInput" placeholder="Type a creature name…" autocomplete="off" />
-        <button id="guessBtn">Guess</button>
-        <button id="resetBtn">Reset</button>
-      </div>
-
-      <table>
-        <thead><tr><th>Name</th><th>Status</th></tr></thead>
-        <tbody id="guessesBody"></tbody>
-      </table>
-
-      <div id="message"></div>
-    </div>
+  <div id="welcome">
+    <p style="text-align:center">Welcome to Guess the Tibiantis monster based on its loot!</p>
+    <button id="startBtn">Start the game!</button>
   </div>
 
+  <div id="gameArea" class="hidden">
+    <div id="lootArea"></div>
+
+    <div class="row">
+      <input id="guessInput" placeholder="Type a creature name…" />
+      <button id="guessBtn">Guess</button>
+    </div>
+
+    <table>
+      <thead><tr><th>Name</th><th>Status</th></tr></thead>
+      <tbody id="guessesBody"></tbody>
+    </table>
+
+    <div id="message"></div>
+  </div>
+</div>
+
 <script>
-const ITEMS_URL = "/items.json";
 const MONSTER_LOOT_URL = "/monster_loot.json";
+const ITEMS_URL = "/items.json"; // optional icons (not required now)
 
-const norm = v => (v ?? '').toLowerCase().trim();
-
+const norm = s => (s||"").toLowerCase().trim();
 function getWarsawDateKey(){
   const fmt=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Warsaw',year:'numeric',month:'2-digit',day:'2-digit'});
-  return fmt.format(new Date()); // YYYY-MM-DD
+  return fmt.format(new Date());
 }
 function hashStr(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}}
 
-let ITEMS = null;
-let MONSTER_LOOT = {};
-let MONSTER_NAMES = [];
-let TARGET = null;
-let LOOT_LIST = [];
-let revealed=0, solved=false;
+let TARGET=null, LOOT_LIST=[], revealed=0;
 
-const DATE_KEY = getWarsawDateKey();
-const STORAGE_KEY = 'tibiantis_loot_' + DATE_KEY;
+async function initGame(){
+  const monsters = await fetch(MONSTER_LOOT_URL).then(r=>r.json());
+  const names = Object.keys(monsters);
+  const idx = hashStr(getWarsawDateKey()) % names.length;
+  TARGET = names[idx];
+  LOOT_LIST = monsters[TARGET] || [];
 
-/* Debug-friendly fetch */
-async function fetchJSON(url){
-  console.log("Fetching:", url);
-  const r = await fetch(url, { cache:'no-store' });
-  console.log("Response:", r.status, r.headers.get("content-type"));
-  if(!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
-  return r.json();
-}
+  document.getElementById("welcome").classList.add("hidden");
+  document.getElementById("gameArea").classList.remove("hidden");
 
-async function initData(){
-  try {
-    ITEMS = await fetchJSON(ITEMS_URL).catch(e => null); // optional
-    MONSTER_LOOT = await fetchJSON(MONSTER_LOOT_URL);
-
-    MONSTER_NAMES = Object.keys(MONSTER_LOOT).sort();
-    const idx = hashStr(DATE_KEY) % MONSTER_NAMES.length;
-    TARGET = MONSTER_NAMES[idx];
-
-    const lootNames = MONSTER_LOOT[TARGET] || [];
-    LOOT_LIST = lootNames.map(n => ({
-      name: n,
-      icon: ITEMS ? (ITEMS[norm(n)] || null) : null
-    }));
+  if(LOOT_LIST.length===0){
+    document.getElementById("lootArea").textContent="This monster doesn't loot a thing!!!";
+  } else {
     shuffle(LOOT_LIST);
-  } catch(e){
-    console.error("initData error:", e);
-    document.getElementById("message").textContent =
-      "Error loading data. Ensure both files exist at repo root: items.json (optional) and monster_loot.json (required).";
+    revealNextLoot();
   }
-}
-
-function renderLoot(item){
-  const div=document.createElement("div");
-  div.className="loot-badge";
-  div.textContent=item.name;
-  return div;
 }
 
 function revealNextLoot(){
   if(revealed>=LOOT_LIST.length) return;
-  const item=LOOT_LIST[revealed++];
-  document.getElementById("lootArea").appendChild(renderLoot(item));
+  const name=LOOT_LIST[revealed++];
+  const div=document.createElement("div");
+  div.className="loot-badge";
+  div.textContent=name;
+  document.getElementById("lootArea").appendChild(div);
 }
 
-function addGuessRow(name, correct){
+function makeGuess(){
+  const guess=document.getElementById("guessInput").value.trim();
+  if(!guess) return;
+  const correct=norm(guess)===norm(TARGET);
   const tr=document.createElement("tr");
-  const td1=document.createElement("td"); td1.textContent=name;
+  const td1=document.createElement("td");td1.textContent=guess;
   const td2=document.createElement("td");
   const badge=document.createElement("span");
   badge.className="badge "+(correct?"ok":"no");
   badge.textContent=correct?"Correct":"Wrong";
-  td2.appendChild(badge);
-  tr.appendChild(td1); tr.appendChild(td2);
+  td2.appendChild(badge);tr.appendChild(td1);tr.appendChild(td2);
   document.getElementById("guessesBody").prepend(tr);
-}
-
-function makeGuess(){
-  const val=document.getElementById("guessInput").value.trim();
-  if(!val) return;
-  const correct = norm(val)===norm(TARGET);
-  addGuessRow(val, correct);
   if(correct){
-    solved=true;
-    document.getElementById("message").textContent="🎉 Correct! The monster is "+TARGET;
+    document.getElementById("message").textContent="🎉 Correct! It was "+TARGET+"!";
   } else {
     revealNextLoot();
   }
   document.getElementById("guessInput").value="";
 }
 
-document.getElementById("startBtn").addEventListener("click", async ()=>{
-  await initData();
-  document.getElementById("welcome").classList.add("hidden");
-  document.getElementById("gameArea").classList.remove("hidden");
-  revealNextLoot();
-});
-document.getElementById("guessBtn").addEventListener("click", makeGuess);
-document.getElementById("guessInput").addEventListener("keydown", e=>{if(e.key==="Enter") makeGuess();});
-document.getElementById("resetBtn").addEventListener("click", ()=>location.reload());
+document.getElementById("startBtn").addEventListener("click",initGame);
+document.getElementById("guessBtn").addEventListener("click",makeGuess);
+document.getElementById("guessInput").addEventListener("keydown",e=>{if(e.key==="Enter") makeGuess();});
 </script>
 </body>
 </html>
