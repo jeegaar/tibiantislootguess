@@ -11,7 +11,8 @@
   }
   *{box-sizing:border-box}
   body{
-    margin:0;font-family:system-ui,Arial,sans-serif;background:linear-gradient(180deg,#0c0f12,#12161a);
+    margin:0;font-family:system-ui,Arial,sans-serif;
+    background:linear-gradient(180deg,#0c0f12,#12161a);
     color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
   }
   .app{width:100%;max-width:900px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;}
@@ -20,40 +21,24 @@
   .help{color:var(--muted);font-size:0.95rem;margin-bottom:10px;text-align:center}
   .hidden{display:none}
 
-  /* Controls */
   .row{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-top:10px}
   input[type=text]{padding:10px;border-radius:8px;border:1px solid var(--border);background:#0f1419;color:var(--text)}
   button{padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:#0f1419;color:var(--text);cursor:pointer}
 
-  /* Loot strip */
-  #lootArea{
-    display:flex;justify-content:center;align-items:center;gap:12px;
-    margin:18px 0 6px 0;flex-wrap:wrap;
-  }
-  #lootArea figure{
-    margin:0;display:flex;flex-direction:column;align-items:center;gap:6px
-  }
-  #lootArea img{
-    width:48px;height:48px;object-fit:contain;
-    border:1px solid var(--border);border-radius:8px;background:#0f1419;padding:6px;
-  }
-  /* Text badge fallback (shown when icon missing) */
+  #lootArea{display:flex;justify-content:center;align-items:center;gap:12px;margin:18px 0;flex-wrap:wrap}
   .loot-badge{
     min-width:48px;min-height:48px;display:flex;align-items:center;justify-content:center;
     padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#0f1419;
     font-size:0.8rem;color:var(--text);text-align:center;white-space:nowrap;
   }
-  #lootArea figcaption{font-size:0.7rem;color:var(--muted)}
 
-  /* Table */
   table{width:100%;border-collapse:collapse;margin-top:10px}
   th,td{padding:8px;border-bottom:1px solid var(--border);text-align:left}
   .badge{display:inline-block;padding:4px 8px;border-radius:999px;color:#fff;font-size:0.85rem}
   .ok{background:var(--green)}.no{background:var(--red)}
 
-  /* Modal */
   .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999}
-  .modal{background:var(--panel);padding:20px;border-radius:12px;border:1px solid var(--border);max-width:420px;box-shadow:0 10px 30px rgba(0,0,0,0.5);text-align:center}
+  .modal{background:var(--panel);padding:20px;border-radius:12px;border:1px solid var(--border);max-width:420px;text-align:center}
   .modal h2{margin:0 0 8px;color:var(--accent)}.modal p{margin:0 0 12px}
   .modal button{padding:8px 12px;border-radius:8px}
 
@@ -74,297 +59,127 @@
     </div>
 
     <div id="gameArea" class="hidden">
-      <div class="help">A random item from today’s monster will appear. If your guess is wrong, the next item appears (to the right). Case doesn’t matter.</div>
+      <div class="help">Guess today's creature. A random loot item is revealed first. Each wrong guess shows another item.</div>
 
-      <div id="lootArea" aria-label="Revealed loot icons or names"></div>
+      <div id="lootArea"></div>
 
       <div class="row">
-        <input id="guessInput" placeholder="Type a creature name and press Enter…" autocomplete="off" />
+        <input id="guessInput" placeholder="Type a creature name…" autocomplete="off" />
         <button id="guessBtn">Guess</button>
-        <button id="resetBtn" title="Clear today’s progress">Reset</button>
+        <button id="resetBtn">Reset</button>
       </div>
 
-      <table aria-label="Guesses">
+      <table>
         <thead><tr><th>Name</th><th>Status</th></tr></thead>
         <tbody id="guessesBody"></tbody>
       </table>
 
-      <div id="message" role="status" aria-live="polite"></div>
+      <div id="message"></div>
     </div>
   </div>
 
 <script>
-/* ===== Config (files at repo root on Netlify) ===== */
-const ITEMS_URL = "/items.json";              // { "gold coin": "icons/goldcoin.png", ... }
-const MONSTER_LOOT_URL = "/monster_loot.json"; // { "rat": ["gold coin","cheese"], ... }
+const ITEMS_URL = "/items.json";
+const MONSTER_LOOT_URL = "/monster_loot.json";
 
-/* ===== Utilities ===== */
-const norm = v => (v ?? '').toString().trim().toLowerCase();
+const norm = v => (v ?? '').toLowerCase().trim();
 
 function getWarsawDateKey(){
-  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone:'Europe/Warsaw', year:'numeric', month:'2-digit', day:'2-digit' });
-  const parts = fmt.formatToParts(new Date());
-  const y = parts.find(p=>p.type==='year').value;
-  const m = parts.find(p=>p.type==='month').value;
-  const d = parts.find(p=>p.type==='day').value;
-  return `${y}-${m}-${d}`; // YYYY-MM-DD
+  const fmt=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Warsaw',year:'numeric',month:'2-digit',day:'2-digit'});
+  return fmt.format(new Date()); // YYYY-MM-DD
 }
-function hashStr(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
-function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+function hashStr(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
 
-/* ===== State ===== */
-let ITEMS = null;              // null if items.json not found; else {lowerName: iconPath}
-let MONSTER_LOOT = {};         // {lowerMonster: [lowerItem,...]}
-let MONSTER_NAMES = [];        // [lowerMonster,...]
-let TARGET = null;             // lower-case monster name
-let LOOT_LIST = [];            // [{name, icon|null}]
-let revealed = 0;
-let solved = false;
+let ITEMS = null;
+let MONSTER_LOOT = {};
+let MONSTER_NAMES = [];
+let TARGET = null;
+let LOOT_LIST = [];
+let revealed=0, solved=false;
 
 const DATE_KEY = getWarsawDateKey();
 const STORAGE_KEY = 'tibiantis_loot_' + DATE_KEY;
 
-/* ===== DOM ===== */
-const dayInfo = document.getElementById('dayInfo');
-const welcome = document.getElementById('welcome');
-const gameArea = document.getElementById('gameArea');
-const lootArea = document.getElementById('lootArea');
-const guessInput = document.getElementById('guessInput');
-const guessBtn = document.getElementById('guessBtn');
-const resetBtn = document.getElementById('resetBtn');
-const guessesBody = document.getElementById('guessesBody');
-const messageBox = document.getElementById('message');
-
-/* ===== Persistence ===== */
-function saveState(){
-  const rows = Array.from(guessesBody.querySelectorAll('tr')).map(tr => {
-    const name = tr.children[0]?.textContent ?? '';
-    const ok = tr.querySelector('.badge')?.classList.contains('ok') ?? false;
-    return { name, ok };
-  });
-  const data = { revealed, solved, rows };
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
-}
-function loadState(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return null;
-    return JSON.parse(raw);
-  }catch(e){ return null; }
-}
-function clearToday(){ try{ localStorage.removeItem(STORAGE_KEY); }catch(e){} }
-
-/* ===== UI helpers ===== */
-function showMessage(text, type){
-  messageBox.className = type || '';
-  messageBox.textContent = text || '';
-}
-function clearMessage(){ showMessage('', ''); }
-
-function addGuessRow(name, correct){
-  const tr = document.createElement('tr');
-  const tdName = document.createElement('td'); tdName.textContent = name;
-  const tdStatus = document.createElement('td');
-  const badge = document.createElement('span');
-  badge.className = 'badge ' + (correct ? 'ok' : 'no');
-  badge.textContent = correct ? 'Correct' : 'Wrong';
-  tdStatus.appendChild(badge);
-  tr.appendChild(tdName); tr.appendChild(tdStatus);
-  guessesBody.prepend(tr);
-}
-
-function showWinModal(guessesCount){
-  const backdrop = document.createElement('div'); backdrop.className='modal-backdrop';
-  const modal = document.createElement('div'); modal.className='modal';
-  const h = document.createElement('h2'); h.textContent = 'You Guessed Right!';
-  const p = document.createElement('p'); p.textContent = `Solved in ${guessesCount} ${guessesCount===1?'guess':'guesses'}!`;
-  const btn = document.createElement('button'); btn.textContent='Close';
-  btn.addEventListener('click', ()=>document.body.removeChild(backdrop));
-  modal.appendChild(h); modal.appendChild(p); modal.appendChild(btn);
-  backdrop.appendChild(modal);
-  document.body.appendChild(backdrop);
-}
-
-function prettyName(s){
-  return (s||'').split(/(\s|-|')/).map(part => /[a-z]/i.test(part) ? part.charAt(0).toUpperCase()+part.slice(1) : part).join('');
-}
-
-/* ===== Loot rendering (icon if available else text badge) ===== */
-function renderLootTile(item){
-  const fig = document.createElement('figure');
-
-  if (item.icon) {
-    const img = document.createElement('img');
-    img.src = item.icon;
-    img.alt = item.name;
-    img.title = item.name;
-    // If the icon 404s, swap to a text badge (no blocking)
-    img.onerror = () => {
-      fig.innerHTML = '';
-      const badge = document.createElement('div');
-      badge.className = 'loot-badge';
-      badge.textContent = item.name;
-      fig.appendChild(badge);
-    };
-    fig.appendChild(img);
-  } else {
-    const badge = document.createElement('div');
-    badge.className = 'loot-badge';
-    badge.textContent = item.name;
-    fig.appendChild(badge);
-  }
-  return fig;
-}
-
-function revealNextLoot(){
-  if(revealed >= LOOT_LIST.length){
-    showMessage('No more loot hints. Keep trying!', 'info');
-    return;
-  }
-  const item = LOOT_LIST[revealed++];
-  lootArea.appendChild(renderLootTile(item));
-}
-
-/* ===== Data loading ===== */
+/* Debug-friendly fetch */
 async function fetchJSON(url){
+  console.log("Fetching:", url);
   const r = await fetch(url, { cache:'no-store' });
+  console.log("Response:", r.status, r.headers.get("content-type"));
   if(!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
   return r.json();
 }
 
-async function loadMonsterLoot(){
-  const raw = await fetchJSON(MONSTER_LOOT_URL);
-  const out = {};
-  Object.keys(raw).forEach(mon => {
-    out[norm(mon)] = (raw[mon] || []).map(n => norm(n));
-  });
-  return out;
-}
-
-/* items.json is OPTIONAL — if missing, we still run with text badges */
-async function tryLoadItems(){
-  try{
-    const raw = await fetchJSON(ITEMS_URL);          // {"gold coin":"icons/goldcoin.png", ...}
-    const out = {};
-    Object.keys(raw).forEach(name => { out[norm(name)] = raw[name]; });
-    return out;
-  } catch(e){
-    console.warn('items.json not found/failed — falling back to text badges only.', e);
-    return null;
-  }
-}
-
 async function initData(){
-  MONSTER_LOOT = await loadMonsterLoot();
-  ITEMS = await tryLoadItems();
+  try {
+    ITEMS = await fetchJSON(ITEMS_URL).catch(e => null); // optional
+    MONSTER_LOOT = await fetchJSON(MONSTER_LOOT_URL);
 
-  MONSTER_NAMES = Object.keys(MONSTER_LOOT).sort();
-  if(!MONSTER_NAMES.length) throw new Error('monster_loot.json is empty.');
+    MONSTER_NAMES = Object.keys(MONSTER_LOOT).sort();
+    const idx = hashStr(DATE_KEY) % MONSTER_NAMES.length;
+    TARGET = MONSTER_NAMES[idx];
 
-  const idx = hashStr(DATE_KEY) % MONSTER_NAMES.length;
-  TARGET = MONSTER_NAMES[idx];
-
-  const lootNames = MONSTER_LOOT[TARGET] || [];
-  LOOT_LIST = lootNames.map(name => ({
-    name,
-    icon: ITEMS ? (ITEMS[name] || null) : null
-  }));
-  shuffle(LOOT_LIST);
-}
-
-/* ===== Game flow ===== */
-async function startGame(){
-  clearMessage();
-  dayInfo.textContent = 'Day: ' + DATE_KEY + ' (Europe/Warsaw)';
-
-  // Immediately show the game UI so the button always "does something"
-  welcome.classList.add('hidden');
-  gameArea.classList.remove('hidden');
-  showMessage('Loading data…', 'info');
-
-  try{
-    await initData();
-  } catch(err){
-    console.error(err);
-    showMessage('Error loading data. Ensure both files exist at repo root: items.json (optional) and monster_loot.json (required).', 'error');
-    return;
-  }
-
-  clearMessage();
-
-  // Restore state (if any), otherwise reveal the first loot item
-  const state = loadState();
-  if(state){
-    revealed = Math.min(state.revealed || 0, LOOT_LIST.length);
-    solved = !!state.solved;
-    // Reveal previously shown items
-    for(let i=0;i<revealed;i++) lootArea.appendChild(renderLootTile(LOOT_LIST[i]));
-    // Restore guesses
-    (state.rows || []).slice().reverse().forEach(r => addGuessRow(r.name, r.ok));
-    if(solved){
-      showMessage('🎉 Already solved today. The creature is ' + prettyName(TARGET) + '.', 'winner');
-      disableInput(true);
-      return;
-    }
-    if(revealed === 0) { revealNextLoot(); }
-  } else {
-    revealNextLoot();
-    saveState();
+    const lootNames = MONSTER_LOOT[TARGET] || [];
+    LOOT_LIST = lootNames.map(n => ({
+      name: n,
+      icon: ITEMS ? (ITEMS[norm(n)] || null) : null
+    }));
+    shuffle(LOOT_LIST);
+  } catch(e){
+    console.error("initData error:", e);
+    document.getElementById("message").textContent =
+      "Error loading data. Ensure both files exist at repo root: items.json (optional) and monster_loot.json (required).";
   }
 }
 
-function disableInput(dis=true){
-  guessInput.disabled = dis;
-  guessBtn.disabled = dis;
+function renderLoot(item){
+  const div=document.createElement("div");
+  div.className="loot-badge";
+  div.textContent=item.name;
+  return div;
+}
+
+function revealNextLoot(){
+  if(revealed>=LOOT_LIST.length) return;
+  const item=LOOT_LIST[revealed++];
+  document.getElementById("lootArea").appendChild(renderLoot(item));
+}
+
+function addGuessRow(name, correct){
+  const tr=document.createElement("tr");
+  const td1=document.createElement("td"); td1.textContent=name;
+  const td2=document.createElement("td");
+  const badge=document.createElement("span");
+  badge.className="badge "+(correct?"ok":"no");
+  badge.textContent=correct?"Correct":"Wrong";
+  td2.appendChild(badge);
+  tr.appendChild(td1); tr.appendChild(td2);
+  document.getElementById("guessesBody").prepend(tr);
 }
 
 function makeGuess(){
-  if(!TARGET) return;
-  clearMessage();
-  const input = guessInput.value.trim();
-  if(!input) return;
-
-  const guessNorm = norm(input);
-
-  // Validate against known monsters (keys of monster_loot.json), like the first game did
-  const isKnown = MONSTER_LOOT.hasOwnProperty(guessNorm);
-  if(!isKnown){
-    showMessage(`Unknown creature: "${input}"`, 'error');
-    return;
-  }
-
-  const correct = (guessNorm === TARGET);
-  addGuessRow(input, correct);
-
+  const val=document.getElementById("guessInput").value.trim();
+  if(!val) return;
+  const correct = norm(val)===norm(TARGET);
+  addGuessRow(val, correct);
   if(correct){
-    solved = true;
-    showMessage('🎉 You guessed it! Today\'s creature is ' + prettyName(TARGET) + '.', 'winner');
-    showWinModal(Array.from(guessesBody.querySelectorAll('tr')).length);
-    disableInput(true);
+    solved=true;
+    document.getElementById("message").textContent="🎉 Correct! The monster is "+TARGET;
   } else {
     revealNextLoot();
   }
-  guessInput.value = '';
-  saveState();
+  document.getElementById("guessInput").value="";
 }
 
-/* ===== Wire up ===== */
-document.getElementById('startBtn').addEventListener('click', startGame);
-guessBtn.addEventListener('click', makeGuess);
-guessInput.addEventListener('keydown', e => { if(e.key === 'Enter') makeGuess(); });
-
-resetBtn.addEventListener('click', ()=>{
-  clearToday();
-  // Reset UI for the current day (keep the same daily monster)
-  guessesBody.innerHTML = '';
-  lootArea.innerHTML = '';
-  revealed = 0;
-  solved = false;
-  disableInput(false);
-  clearMessage();
+document.getElementById("startBtn").addEventListener("click", async ()=>{
+  await initData();
+  document.getElementById("welcome").classList.add("hidden");
+  document.getElementById("gameArea").classList.remove("hidden");
   revealNextLoot();
-  saveState();
 });
+document.getElementById("guessBtn").addEventListener("click", makeGuess);
+document.getElementById("guessInput").addEventListener("keydown", e=>{if(e.key==="Enter") makeGuess();});
+document.getElementById("resetBtn").addEventListener("click", ()=>location.reload());
 </script>
 </body>
 </html>
