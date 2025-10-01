@@ -31,9 +31,24 @@
     border:1px solid var(--border);color:var(--text);font-size:0.9rem;white-space:nowrap
   }
 
-  .row{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin:10px 0}
-  input[type=text]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0f1419;color:var(--text)}
-  button{padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:#0f1419;color:var(--text);cursor:pointer}
+  .row{display:flex;gap:8px;margin:10px 0;align-items:flex-start}
+  input[type=text]{
+    flex:1;
+    min-width:300px;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:#0f1419;
+    color:var(--text)
+  }
+  button{
+    padding:10px 14px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:#0f1419;
+    color:var(--text);
+    cursor:pointer
+  }
 
   table{width:100%;border-collapse:collapse;margin-top:10px;text-align:left}
   th,td{padding:8px;border-bottom:1px solid var(--border)}
@@ -65,7 +80,7 @@
     <div id="lootArea" aria-label="Revealed loot names"></div>
 
     <div class="row">
-      <div style="display:flex;flex-direction:column;align-items:flex-start;width:100%">
+      <div style="flex:1;display:flex;flex-direction:column">
         <input id="guessInput" placeholder="Type monster name and press Enter…" autocomplete="off" />
         <span id="errorMsg">This monster doesn't exist</span>
       </div>
@@ -83,223 +98,114 @@
 </div>
 
 <script>
-/* ---------- config ---------- */
 const MONSTER_LOOT_URL = "/monster_loot.json";
 
-/* ---------- helpers ---------- */
 const norm = v => (v ?? "").toString().trim().toLowerCase();
 
 function getWarsawDateKey(){
-  const fmt = new Intl.DateTimeFormat('en-CA', {
-    timeZone:'Europe/Warsaw', year:'numeric', month:'2-digit', day:'2-digit'
-  });
+  const fmt = new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Warsaw',year:'numeric',month:'2-digit',day:'2-digit'});
   const parts = fmt.formatToParts(new Date());
-  const y = parts.find(p=>p.type==='year').value;
-  const m = parts.find(p=>p.type==='month').value;
-  const d = parts.find(p=>p.type==='day').value;
-  return `${y}-${m}-${d}`;
+  return `${parts.find(p=>p.type==='year').value}-${parts.find(p=>p.type==='month').value}-${parts.find(p=>p.type==='day').value}`;
 }
+function hashStr(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0;}
+function makePRNG(seed){ let x=seed||123456789; return()=>{x^=x<<13;x^=x>>>17;x^=x<<5;return(x>>>0)/4294967296;};}
+function seededPick(arr,prng){return arr.length?arr[Math.floor(prng()*arr.length)]:undefined;}
+function seededShuffle(a,prng){for(let i=a.length-1;i>0;i--){const j=Math.floor(prng()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
 
-function hashStr(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h,16777619); } return h>>>0; }
-function makePRNG(seed){ let x = seed || 123456789; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return (x>>>0) / 4294967296; }; }
-function seededPick(arr, prng){ return arr.length ? arr[Math.floor(prng()*arr.length)] : undefined; }
-function seededShuffle(a, prng){ for(let i=a.length-1;i>0;i--){ const j = Math.floor(prng()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } }
+let MONSTERS={},MONSTER_NAMES=[],TARGET=null,TARGET_DISPLAY=null,LOOT=[],revealed=0,tries=0,solved=false;
 
-/* ---------- state ---------- */
-let MONSTERS = {};
-let MONSTER_NAMES = [];
-let TARGET = null;
-let TARGET_DISPLAY = null;
-let LOOT = [];
-let revealed = 0;
-let tries = 0;
-let solved = false;
+const DATE_KEY=getWarsawDateKey();
+const STORAGE_KEY='tibiantis_loot_daily_'+DATE_KEY;
 
-const DATE_KEY = getWarsawDateKey();
-const STORAGE_KEY = 'tibiantis_loot_daily_' + DATE_KEY;
+const dayInfo=document.getElementById('dayInfo');
+const welcome=document.getElementById('welcome');
+const gameArea=document.getElementById('gameArea');
+const lootArea=document.getElementById('lootArea');
+const guessInput=document.getElementById('guessInput');
+const errorMsg=document.getElementById('errorMsg');
+const guessesBody=document.getElementById('guessesBody');
+const messageBox=document.getElementById('message');
 
-/* ---------- dom ---------- */
-const dayInfo = document.getElementById('dayInfo');
-const welcome = document.getElementById('welcome');
-const gameArea = document.getElementById('gameArea');
-const lootArea = document.getElementById('lootArea');
-const guessInput = document.getElementById('guessInput');
-const errorMsg = document.getElementById('errorMsg');
-const guessesBody = document.getElementById('guessesBody');
-const messageBox = document.getElementById('message');
-
-/* ---------- persistence ---------- */
 function saveState(){
-  const rows = Array.from(guessesBody.querySelectorAll('tr')).map(tr => {
-    return { guess: tr.children[0]?.textContent ?? '', ok: tr.querySelector('.badge')?.classList.contains('ok') ?? false };
-  });
-  const data = { revealed, tries, solved, rows };
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e){}
+  const rows=Array.from(guessesBody.querySelectorAll('tr')).map(tr=>({guess:tr.children[0]?.textContent??'',ok:tr.querySelector('.badge')?.classList.contains('ok')??false}));
+  const data={revealed,tries,solved,rows};
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(e){}
 }
-function loadState(){
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch(e){ return null; }
-}
+function loadState(){try{const raw=localStorage.getItem(STORAGE_KEY);return raw?JSON.parse(raw):null;}catch(e){return null;}}
 
-/* ---------- ui helpers ---------- */
-function setMessage(text){ messageBox.textContent = text || ''; }
-function addLootBadge(name){
-  const div = document.createElement('div');
-  div.className = 'loot-badge';
-  div.textContent = name;
-  lootArea.appendChild(div);
-}
+function setMessage(text){messageBox.textContent=text||'';}
+function addLootBadge(name){const div=document.createElement('div');div.className='loot-badge';div.textContent=name;lootArea.appendChild(div);}
 function revealNext(){
-  if (LOOT.length === 0) {
-    lootArea.textContent = "This monster doesn't loot a thing!!!";
-    return;
-  }
-  if (revealed >= LOOT.length) {
-    lootArea.appendChild(Object.assign(document.createElement('div'), {className:'loot-badge', textContent:"This monster doesn't loot anything else!"}));
-    return;
-  }
+  if(LOOT.length===0){lootArea.textContent="This monster doesn't loot a thing!!!";return;}
+  if(revealed>=LOOT.length){lootArea.appendChild(Object.assign(document.createElement('div'),{className:'loot-badge',textContent:"This monster doesn't loot anything else!"}));return;}
   addLootBadge(LOOT[revealed++]);
 }
-function addGuessRow(text, ok){
-  const tr = document.createElement('tr');
-  const td1 = document.createElement('td'); td1.textContent = text;
-  const td2 = document.createElement('td');
-  const b = document.createElement('span'); b.className = 'badge ' + (ok?'ok':'no'); b.textContent = ok ? 'Correct' : 'Wrong';
-  td2.appendChild(b);
-  tr.appendChild(td1); tr.appendChild(td2);
-  guessesBody.prepend(tr);
+function addGuessRow(text,ok){
+  const tr=document.createElement('tr');
+  const td1=document.createElement('td');td1.textContent=text;
+  const td2=document.createElement('td');
+  const b=document.createElement('span');b.className='badge '+(ok?'ok':'no');b.textContent=ok?'Correct':'Wrong';
+  td2.appendChild(b);tr.appendChild(td1);tr.appendChild(td2);guessesBody.prepend(tr);
 }
 function showModalSolved(){
-  const backdrop = document.createElement('div'); backdrop.className='modal-backdrop';
-  const modal = document.createElement('div'); modal.className='modal';
-  const h = document.createElement('h2'); h.textContent = 'Congratulations!';
-  const p = document.createElement('p'); p.textContent = `You guessed it in ${tries} ${tries===1?'try':'tries'}!`;
-  const btn = document.createElement('button'); btn.textContent = 'Close'; btn.addEventListener('click', ()=>document.body.removeChild(backdrop));
-  modal.appendChild(h); modal.appendChild(p); modal.appendChild(btn);
-  backdrop.appendChild(modal); document.body.appendChild(backdrop);
+  const backdrop=document.createElement('div');backdrop.className='modal-backdrop';
+  const modal=document.createElement('div');modal.className='modal';
+  const h=document.createElement('h2');h.textContent='Congratulations!';
+  const p=document.createElement('p');p.textContent=`You guessed it in ${tries} ${tries===1?'try':'tries'}!`;
+  const btn=document.createElement('button');btn.textContent='Close';btn.addEventListener('click',()=>document.body.removeChild(backdrop));
+  modal.appendChild(h);modal.appendChild(p);modal.appendChild(btn);backdrop.appendChild(modal);document.body.appendChild(backdrop);
 }
 
-/* ---------- data + daily selection ---------- */
 async function loadMonsters(){
-  const r = await fetch(MONSTER_LOOT_URL, { cache:'no-store' });
-  if(!r.ok) throw new Error('Could not load monster_loot.json: HTTP '+r.status);
-  const data = await r.json();
-  MONSTERS = data;
-  MONSTER_NAMES = Object.keys(MONSTERS);
+  const r=await fetch(MONSTER_LOOT_URL,{cache:'no-store'});
+  if(!r.ok)throw new Error('Could not load monster_loot.json');
+  const data=await r.json();MONSTERS=data;MONSTER_NAMES=Object.keys(MONSTERS);
 }
-
 function setupToday(){
-  const seed = hashStr('TIBIANTIS' + DATE_KEY);
-  const rng = makePRNG(seed);
-  TARGET_DISPLAY = seededPick(MONSTER_NAMES, rng) || '';
-  TARGET = norm(TARGET_DISPLAY);
-  const lootRaw = Array.isArray(MONSTERS[TARGET_DISPLAY]) ? MONSTERS[TARGET_DISPLAY].slice() : [];
-  const lootSeed = hashStr(DATE_KEY + '|' + TARGET_DISPLAY);
-  const lootRng = makePRNG(lootSeed);
-  seededShuffle(lootRaw, lootRng);
-  LOOT = lootRaw;
-  revealed = 0; tries = 0; solved = false;
+  const seed=hashStr('TIBIANTIS'+DATE_KEY);
+  const rng=makePRNG(seed);
+  TARGET_DISPLAY=seededPick(MONSTER_NAMES,rng)||'';TARGET=norm(TARGET_DISPLAY);
+  const lootRaw=Array.isArray(MONSTERS[TARGET_DISPLAY])?MONSTERS[TARGET_DISPLAY].slice():[];
+  const lootSeed=hashStr(DATE_KEY+'|'+TARGET_DISPLAY);const lootRng=makePRNG(lootSeed);
+  seededShuffle(lootRaw,lootRng);LOOT=lootRaw;revealed=0;tries=0;solved=false;
 }
-
-/* ---------- game flow ---------- */
 function restoreStateIfAny(){
-  const state = loadState();
-  if(!state) return false;
-  revealed = Math.min(state.revealed||0, LOOT.length);
-  tries = state.tries || 0;
-  solved = !!state.solved;
-  lootArea.innerHTML = '';
-  if (LOOT.length === 0) lootArea.textContent = "This monster doesn't loot a thing!!!";
-  else for(let i=0;i<revealed;i++) addLootBadge(LOOT[i]);
-  guessesBody.innerHTML = '';
-  (state.rows||[]).slice().reverse().forEach(r => addGuessRow(r.guess, r.ok));
-  if (solved) {
-    setMessage(`🎉 Already solved today. The monster is ${TARGET_DISPLAY}.`);
-    guessInput.disabled = true;
-    document.getElementById('guessBtn').disabled = true;
-  }
+  const state=loadState();if(!state)return false;
+  revealed=Math.min(state.revealed||0,LOOT.length);tries=state.tries||0;solved=!!state.solved;
+  lootArea.innerHTML='';if(LOOT.length===0)lootArea.textContent="This monster doesn't loot a thing!!!";
+  else for(let i=0;i<revealed;i++)addLootBadge(LOOT[i]);
+  guessesBody.innerHTML='';(state.rows||[]).slice().reverse().forEach(r=>addGuessRow(r.guess,r.ok));
+  if(solved){setMessage(`🎉 Already solved today. The monster is ${TARGET_DISPLAY}.`);guessInput.disabled=true;document.getElementById('guessBtn').disabled=true;}
   return true;
 }
-
 async function startGame(){
-  welcome.classList.add('hidden');
-  gameArea.classList.remove('hidden');
-  dayInfo.textContent = `Day: ${DATE_KEY} (Europe/Warsaw)`;
-  try { await loadMonsters(); } catch(e){
-    setMessage('Error loading data. Make sure monster_loot.json is deployed at site root.');
-    return;
-  }
-  setupToday();
-  const restored = restoreStateIfAny();
-  if (!restored) { revealNext(); saveState(); }
+  welcome.classList.add('hidden');gameArea.classList.remove('hidden');
+  dayInfo.textContent=`Day: ${DATE_KEY} (Europe/Warsaw)`;
+  try{await loadMonsters();}catch(e){setMessage('Error loading data.');return;}
+  setupToday();const restored=restoreStateIfAny();if(!restored){revealNext();saveState();}
 }
-
-/* ---------- guessing ---------- */
-function clearError(){
-  guessInput.classList.remove('error');
-  errorMsg.style.display = 'none';
-}
-function showError(msg){
-  guessInput.classList.add('error');
-  errorMsg.textContent = msg;
-  errorMsg.style.display = 'block';
-}
-
+function clearError(){guessInput.classList.remove('error');errorMsg.style.display='none';}
+function showError(msg){guessInput.classList.add('error');errorMsg.textContent=msg;errorMsg.style.display='block';}
 function onGuess(){
-  if(!TARGET) return;
-  const raw = guessInput.value.trim();
-  const g = norm(raw);
-  if(!g) return;
-
-  if(!MONSTER_NAMES.map(norm).includes(g)){
-    showError("This monster doesn't exist");
-    return;
-  }
-  clearError();
-
-  tries++;
-  const ok = (g === TARGET);
-  addGuessRow(raw, ok);
-  if (ok) {
-    solved = true;
-    setMessage(`🎉 Correct! The monster is ${TARGET_DISPLAY}.`);
-    showModalSolved();
-    guessInput.disabled = true;
-    document.getElementById('guessBtn').disabled = true;
-  } else {
-    if (revealed < LOOT.length) revealNext();
-    else {
-      const last = lootArea.lastElementChild;
-      if (!last || last.textContent !== "This monster doesn't loot anything else!") {
-        lootArea.appendChild(Object.assign(document.createElement('div'), {className:'loot-badge', textContent:"This monster doesn't loot anything else!"}));
-      }
-    }
-  }
-  guessInput.value = '';
-  saveState();
+  if(!TARGET)return;
+  const raw=guessInput.value.trim();const g=norm(raw);if(!g)return;
+  if(!MONSTER_NAMES.map(norm).includes(g)){showError("This monster doesn't exist");return;}
+  clearError();tries++;const ok=(g===TARGET);addGuessRow(raw,ok);
+  if(ok){solved=true;setMessage(`🎉 Correct! The monster is ${TARGET_DISPLAY}.`);showModalSolved();guessInput.disabled=true;document.getElementById('guessBtn').disabled=true;}
+  else{if(revealed<LOOT.length)revealNext();else{const last=lootArea.lastElementChild;if(!last||last.textContent!=="This monster doesn't loot anything else!"){lootArea.appendChild(Object.assign(document.createElement('div'),{className:'loot-badge',textContent:"This monster doesn't loot anything else!"}));}}}
+  guessInput.value='';saveState();
 }
-
-/* ---------- reset ---------- */
 function resetGame(){
-  revealed = 0; tries = 0; solved = false;
-  guessesBody.innerHTML = '';
-  lootArea.innerHTML = '';
-  guessInput.disabled = false;
-  document.getElementById('guessBtn').disabled = false;
-  clearError();
-  if (LOOT.length === 0) lootArea.textContent = "This monster doesn't loot a thing!!!";
-  else revealNext();
+  revealed=0;tries=0;solved=false;guessesBody.innerHTML='';lootArea.innerHTML='';
+  guessInput.disabled=false;document.getElementById('guessBtn').disabled=false;clearError();setMessage('');
+  if(LOOT.length===0)lootArea.textContent="This monster doesn't loot a thing!!!";else revealNext();
   saveState();
 }
-
-/* ---------- wire ---------- */
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('guessBtn').addEventListener('click', onGuess);
-document.getElementById('resetBtn').addEventListener('click', resetGame);
-guessInput.addEventListener('keydown', e=>{ if(e.key==="Enter") onGuess(); });
-guessInput.addEventListener('input', clearError);
+document.getElementById('startBtn').addEventListener('click',startGame);
+document.getElementById('guessBtn').addEventListener('click',onGuess);
+document.getElementById('resetBtn').addEventListener('click',resetGame);
+guessInput.addEventListener('keydown',e=>{if(e.key==="Enter")onGuess();});
+guessInput.addEventListener('input',clearError);
 </script>
 </body>
 </html>
