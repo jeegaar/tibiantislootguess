@@ -31,8 +31,8 @@
     border:1px solid var(--border);color:var(--text);font-size:0.9rem;white-space:nowrap
   }
 
-  .row{display:grid;grid-template-columns:1fr auto;gap:8px;margin:10px 0}
-  input[type=text]{padding:10px;border-radius:8px;border:1px solid var(--border);background:#0f1419;color:var(--text)}
+  .row{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin:10px 0}
+  input[type=text]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0f1419;color:var(--text)}
   button{padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:#0f1419;color:var(--text);cursor:pointer}
 
   table{width:100%;border-collapse:collapse;margin-top:10px;text-align:left}
@@ -64,12 +64,13 @@
   <div id="gameArea" class="hidden">
     <div id="lootArea" aria-label="Revealed loot names"></div>
 
-    <div class="row" style="grid-template-columns:1fr auto;">
+    <div class="row">
       <div style="display:flex;flex-direction:column;align-items:flex-start;width:100%">
         <input id="guessInput" placeholder="Type monster name and press Enter…" autocomplete="off" />
         <span id="errorMsg">This monster doesn't exist</span>
       </div>
       <button id="guessBtn">Guess</button>
+      <button id="resetBtn">Reset</button>
     </div>
 
     <table aria-label="Guesses">
@@ -156,7 +157,7 @@ function revealNext(){
     return;
   }
   if (revealed >= LOOT.length) {
-    lootArea.appendChild(Object.assign(document.createElement('div'), {className:'loot-badge', textContent:'Nothing more.'}));
+    lootArea.appendChild(Object.assign(document.createElement('div'), {className:'loot-badge', textContent:"This monster doesn't loot anything else!"}));
     return;
   }
   addLootBadge(LOOT[revealed++]);
@@ -252,7 +253,6 @@ function onGuess(){
   const g = norm(raw);
   if(!g) return;
 
-  // check if monster exists
   if(!MONSTER_NAMES.map(norm).includes(g)){
     showError("This monster doesn't exist");
     return;
@@ -272,8 +272,8 @@ function onGuess(){
     if (revealed < LOOT.length) revealNext();
     else {
       const last = lootArea.lastElementChild;
-      if (!last || last.textContent !== 'Nothing more.') {
-        lootArea.appendChild(Object.assign(document.createElement('div'), {className:'loot-badge', textContent:'Nothing more.'}));
+      if (!last || last.textContent !== "This monster doesn't loot anything else!") {
+        lootArea.appendChild(Object.assign(document.createElement('div'), {className:'loot-badge', textContent:"This monster doesn't loot anything else!"}));
       }
     }
   }
@@ -281,9 +281,23 @@ function onGuess(){
   saveState();
 }
 
+/* ---------- reset ---------- */
+function resetGame(){
+  revealed = 0; tries = 0; solved = false;
+  guessesBody.innerHTML = '';
+  lootArea.innerHTML = '';
+  guessInput.disabled = false;
+  document.getElementById('guessBtn').disabled = false;
+  clearError();
+  if (LOOT.length === 0) lootArea.textContent = "This monster doesn't loot a thing!!!";
+  else revealNext();
+  saveState();
+}
+
 /* ---------- wire ---------- */
 document.getElementById('startBtn').addEventListener('click', startGame);
 document.getElementById('guessBtn').addEventListener('click', onGuess);
+document.getElementById('resetBtn').addEventListener('click', resetGame);
 guessInput.addEventListener('keydown', e=>{ if(e.key==="Enter") onGuess(); });
 guessInput.addEventListener('input', clearError);
 </script>
